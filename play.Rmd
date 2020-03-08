@@ -1,0 +1,218 @@
+
+---
+title: "elo"
+output: html_notebook
+---
+
+## packages
+
+```{r}
+library(tidyverse)
+source("functions.R")
+source("cleaning.R")
+```
+
+
+## initial ratings as "static elo"
+
+[ref](http://opisthokonta.net/?p=1412)
+
+idea: estimate elo ratings by maximum likelihood (or, alternatively, using Stan maybe, "optimizing")
+
+benefit to this idea is that it's all base + tidyverse
+
+```{r}
+games <- readRDS("~/teaching/scoresway/rds/games.rds")
+```
+
+
+```{r}
+comp=53499
+ei_comp(comp, games) %>% arrange(desc(rat))
+```
+
+
+## jottings
+
+that is, estimate the (unchanging) ELO ratings that max the likelihood
+
+try a test one
+
+```{r}
+d <- tribble(
+  ~t1, ~t2, ~r,
+  "a", "b", 1,
+  "b", "a", 0.5,
+  "a", "b", 1,
+  "b", "a", 0.5
+)
+d
+```
+
+get distinct teams and make lookup table
+
+```{r}
+v <- with(d, fct_c(factor(t1), factor(t2)))
+enframe(levels(v), name="id", value="name") -> team_lookup
+team_lookup
+```
+
+augment d with lookup numbers
+
+```{r}
+d %>% left_join(team_lookup, by=c("t1"="name")) %>% 
+  left_join(team_lookup, by=c("t2"="name")) -> dd
+dd
+```
+
+going to use `optim` shortly
+
+function with input ratings (as vector?) and work out likelihood
+
+```{r}
+rat <- c(1700, 1500, 10)
+nt <- nrow(team_lookup)
+dd %>% mutate(d=rat[id.x]-rat[id.y]+rat[nt+1]) %>% 
+  mutate(p=elo_prob(d)) %>% 
+  mutate(loglik=r*log(p)+(1-r)*log(1-p)) %>% 
+  summarize(ll=sum(-2*loglik)) %>% pull(ll)
+```
+
+now arrange into function. Input rat (as vector), data frame of games, data frame of team name lookup
+
+```{r}
+make_team_lookup <- function(games) {
+  v <- with(games, fct_c(factor(t1), factor(t2)))
+  enframe(levels(v), name="id", value="name")
+}
+
+mloglik <- function(rat, games, team_lookup) { # minus twice loglik
+  # team lookups
+  d %>% left_join(team_lookup, by=c("t1"="name")) %>% 
+    left_join(team_lookup, by=c("t2"="name")) -> dd
+  nt <- nrow(team_lookup)
+  dd %>% mutate(d=rat[id.x]-rat[id.y]+rat[nt+1]) %>% 
+    mutate(p=elo_prob(d)) %>% 
+    mutate(loglik=r*log(p)+(1-r)*log(1-p)) %>% 
+    summarize(ll=sum(-2*loglik)) %>% pull(ll)
+}
+```
+
+test
+
+```{r}
+rat <- c(1600, 1500, 10)
+mloglik(rat, d, team_lookup)
+```
+
+regularization
+
+```{r}
+r <- c(12, 11, 10)
+v <- 7
+
+```
+
+
+```{r}
+m2 <- function(rat0, games, team_lookup) {
+  # rat is n-1 independent ratings with the last one being the home adv
+  n <- length(rat0)
+  h <- rat0[n]
+  target_total <- 1500*n
+  actual_total <- sum(rat0[1:(n-1)])
+  rat0[n] <- target_total-actual_total
+  rat <- c(rat0, h)
+  mloglik(rat, games, team_lookup)
+}
+```
+
+function to control this. I am estimating elo ratings from afresh:
+
+
+```{r}
+estimate_initial <- function(games, team_lookup) {
+  n <- nrow(team_lookup)
+  rat0 <- c(rep(1500, n-1), 0)
+  ans <- optim(rat0, fn=m2, games=d, team_lookup=team_lookup)
+  rat0 <- ans$par
+  # reconstitute
+  h <- rat0[n]
+  target_total <- 1500*n
+  actual_total <- sum(rat0[1:(n-1)])
+  rat0[n] <- target_total - actual_total
+  list(rat=rat0, h=h)
+}
+```
+
+try this
+
+```{r}
+estimate_initial(games=d, team_lookup=team_lookup)
+```
+
+set up some games to estimate from
+
+```{r}
+d <- tribble(
+  ~t1, ~t2, ~r,
+  "a", "b", 1,
+  "b", "c", 1,
+  "c", "a", 0,
+  "b", "a", 0.5,
+  "c", "b", 0.5, 
+  "a", "c", 1
+)
+d
+```
+
+
+estimate
+
+```{r}
+estimate_initial(games=d)
+```
+
+try it with something real
+
+```{r}
+games <- readRDS("~/teaching/scoresway/rds/games.rds")
+games %>% filter(comp==47730) %>% 
+  select(t1=t1_name, t2=t2_name, score) %>% 
+  filter(str_detect(score, " - ")) %>% 
+  separate(score, into=c("s1", "s2"), convert = T) %>% 
+  mutate(r=case_when(
+    s1>s2 ~ 1,
+    s1<s2 ~ 0,
+    TRUE  ~ 0.5
+  )) -> d
+d
+```
+
+```{r}
+estimate_initial(d) %>% arrange(desc(rat))
+```
+
+or clean the team names first
+
+```{r}
+games <- readRDS("~/teaching/scoresway/rds/games.rds")
+games %>% filter(comp==47730) -> scotland
+cleaned_names <- clean_names(scotland)
+lookup_cleaned_names(scotland, cleaned_names) %>% 
+  filter(str_detect(score, " - ")) %>% 
+  arrange(time_stamp) %>% 
+  separate(score, into=c("s1", "s2"), convert = T) %>% 
+  mutate(r=case_when(
+    s1>s2 ~ 1,
+    s1<s2 ~ 0,
+    TRUE  ~ 0.5
+  )) -> d
+d
+estimate_initial(d)
+
+```
+
+
+
+
