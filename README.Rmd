@@ -1,0 +1,51 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# elo
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of elo is to estimate player/team strengths using Elo's method.
+
+## Initializing
+
+### Introduction
+
+A major problem with Elo ratings is that they are crucially dependent on how they are initialized. [This blog post](http://opisthokonta.net/?p=1412) suggests using games from an earlier period to estimate initial ratings, under the assumption that the rating for each team is constant over that period. It seems logical to use maximum likelihood to estimate these initial ratings.
+
+### Data format
+
+Below are results from the 2018/19 season of the Scottish Premier soccer league. These are the 33 games of the "regular season", not the final 5 games that decide champions and relegation:
+
+```{r}
+library(tidyverse)
+source("functions.R")
+# source("cleaning.R")
+scotland <- read_rds("scotland.rds")
+scotland
+```
+
+The input data frame for initialization needs to have (at least) columns called `t1`, `t2` and `r`. These are: the name of the home team, the name of the away team, and the game result, with 1 meaning home win, 0.5 meaning draw (tie), and 0 meaning away win.
+
+In my case, I have other columns (which will be ignored): the date and time of game kickoff, and the number of goals scored by the home and away teams.
+
+### Estimating initial ratings
+
+Uses the function `estimate_initial` whoes input is a data frame with columns (at least) `t1`, `t2`, and `r`, as described above:
+
+```{r}
+estimate_initial(scotland) %>% arrange(desc(rat))
+```
+
+I arranged the estimated ratings in descending order. The column `h` is the estimated home field advantage (the same for every team). 

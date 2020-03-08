@@ -4,6 +4,8 @@ title: "elo"
 output: html_notebook
 ---
 
+I can add a readme
+
 ## packages
 
 ```{r}

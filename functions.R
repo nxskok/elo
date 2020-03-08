@@ -37,7 +37,7 @@ m2 <- function(rat0, games, team_lookup) {
 estimate_initial <- function(games) {
   team_lookup <- make_team_lookup(games)
   n <- nrow(team_lookup)
-  print(glue::glue("n = {n}"))
+  # print(glue::glue("n = {n}"))
   rat0 <- c(rep(1500, n-1), 0)
   ans <- optim(rat0, fn=m2, games=games, team_lookup=team_lookup)
   rat0 <- ans$par
