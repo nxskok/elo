@@ -24,6 +24,8 @@ The goal of elo is to estimate player/team strengths using Elo's method.
 
 A major problem with Elo ratings is that they are crucially dependent on how they are initialized. [This blog post](http://opisthokonta.net/?p=1412) suggests using games from an earlier period to estimate initial ratings, under the assumption that the rating for each team is constant over that period. It seems logical to use maximum likelihood to estimate these initial ratings.
 
+One of the advantages of Elo ratings is that they *do not* assume that the ratings remain constant over time, but it seems reasonable to make this assumption (or, if you like, to make an "average" rating) to use for initialization. 
+
 ### Data format
 
 Below are results from the 2018/19 season of the Scottish Premier soccer league. These are the 33 games of the "regular season", not the final 5 games that decide champions and relegation:
@@ -42,7 +44,7 @@ In my case, I have other columns (which will be ignored): the date and time of g
 
 ### Estimating initial ratings
 
-Uses the function `estimate_initial` whoes input is a data frame with columns (at least) `t1`, `t2`, and `r`, as described above:
+Uses the function `estimate_initial` whose input is a data frame with columns (at least) `t1`, `t2`, and `r`, as described above:
 
 ```{r}
 estimate_initial(scotland) %>% arrange(desc(rat))

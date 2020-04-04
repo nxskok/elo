@@ -1,0 +1,162 @@
+---
+title: "Estimating"
+output: html_notebook
+---
+
+## startup
+
+```{r}
+library(tidyverse)
+source("functions.R")
+source("cleaning.R")
+source("estimation.R")
+```
+
+
+
+
+keep track of league codes in codes.csv (libre office)
+
+```{r}
+codes <- read_csv("codes.csv")
+codes %>% filter(is.na(skip)) %>% select(-skip) %>% sample_frac(1) -> codes
+codes
+```
+
+idea: do a combined log-like for a collection of values of k (say seq(0, 100, 5)). That is, do it for each league and sum by value.
+
+```{r}
+ks <- seq(0, 25, 5)
+codes %>% crossing(k=ks) -> d
+pb <- progress_estimated(nrow(d))
+d %>% 
+  mutate(ll=pmap_dbl(list(k, last, this), ~est_k(..1, ..2, ..3))) -> dd
+dd
+```
+
+```{r}
+dd %>% 
+  mutate(k=sprintf("k%02d", k)) %>% 
+  pivot_wider(names_from=k, values_from=ll) %>% 
+  summarize_at(vars(starts_with("k")), ~sum(.))
+```
+
+this suggests 10 points is better than 20 (that I have seen elsewhere). There is only one parameter k, so anything within 1.92 of the max likelihood is within a 95% CI, right?
+
+## jottings
+
+## let's do Scotland this season
+
+first, get clean games from last season and estimate initials
+
+```{r}
+scotland <- read_rds("scotland.rds")
+scotland
+```
+
+```{r}
+estimate_initial(scotland) -> scotland_initial
+scotland_initial
+```
+
+read cleaned this-season games
+
+```{r}
+comp=53513
+(get_clean_games(comp, games) -> scotland_current)
+```
+
+make a list of teams in this one
+
+```{r}
+with(scotland_current, unique(c(t1, t2))) %>% enframe(name=NULL, value="team") -> teams_this
+teams_this
+```
+
+find missing/extra ones
+
+```{r}
+teams_this %>% anti_join(scotland_initial, by=c("team"="name")) %>% pull(team) -> up # came up
+scotland_initial %>% anti_join(teams_this, by=c("name"="team")) %>% pull(name) -> down # went down
+tibble(up, down) -> changes
+changes
+```
+
+can I automate the replacement of team name?
+
+```{r}
+scotland_initial %>% left_join(changes, by=c("name"="down")) %>% 
+  mutate(name=ifelse(!is.na(up), up, name)) %>% 
+  select(-up) -> scotland_initial
+scotland_initial
+```
+
+going back to basics:
+
+```{r}
+ratings <- scotland_initial$rat
+names(ratings) <- scotland_initial$name
+ratings # named vector for looking up team names
+h <- scotland_initial$h[1]
+h
+```
+
+a big loop through this year's games
+
+```{r}
+scotland_current
+```
+
+```{r}
+k <- 40
+scotland_current %>% mutate(p=NA, delta=NA) -> scotland_current
+scotland_current
+for (i in 1:nrow(scotland_current)) {
+  t1name <- scotland_current$t1[i]
+  t2name <- scotland_current$t2[i]
+  result <- scotland_current$r[i]
+  rat1 <- ratings[t1name]
+  rat2 <- ratings[t2name]
+  diff <- rat1-rat2+h
+  p <- 1/(1+10^(-diff/400))
+  delta <- k*(result-p)
+  ratings[t1name] <- ratings[t1name] + delta
+  ratings[t2name] <- ratings[t2name] - delta
+  h <- h + delta/10
+  scotland_current$p[i] <- p
+  scotland_current$delta[i] <- delta
+}
+scotland_current
+```
+
+```{r}
+new_ratings(40, scotland_current, scotland_initial)
+```
+
+optimizing k
+
+need a function that returns the negative log likelihood (using that column p)
+
+```{r}
+
+log_lik(0, scotland_current, scotland_initial)
+```
+
+try some values
+
+```{r}
+v <- tibble(k=seq(-10, 10, 1))
+v %>% mutate(loglik=map_dbl(k, ~log_lik(., scotland_current, scotland_initial)))
+```
+
+the optimal k appears to be *negative*!
+
+try to optimize anyway
+
+```{r}
+ans <- optimize(log_lik, c(0, 60), d=scotland_current, r=scotland_initial)
+ans
+```
+
+now, how about a function that starts from two comp numbers, optimizes for k, and then estimates new ratings?
+

@@ -4,8 +4,6 @@ title: "elo"
 output: html_notebook
 ---
 
-I can add a readme
-
 ## packages
 
 ```{r}
@@ -32,6 +30,22 @@ games <- readRDS("~/teaching/scoresway/rds/games.rds")
 comp=53499
 ei_comp(comp, games) %>% arrange(desc(rat))
 ```
+
+## one for readme
+
+Scotland 2018/19
+
+```{r}
+games <- readRDS("~/teaching/scoresway/rds/games.rds")
+```
+
+
+```{r}
+comp=47730
+get_clean_games(comp, games) -> scotland
+write_rds(scotland, "scotland.rds")
+```
+
 
 
 ## jottings
