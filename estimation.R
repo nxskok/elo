@@ -1,6 +1,6 @@
 new_ratings <- function(k, d, r) {
   # k is the elo k
-  # d is a dataframe of the current season's games with teams as t1 and t2, results as r
+  # d is a dataframe of the current season's games with teams as t1 and t2, results as r, on a 1-0.5-0 scale
   # r is dataframe of initial teams, ratings and home adv
   # returns updated ratings and home adv, and updated df with predicted probs and deltas
   
