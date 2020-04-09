@@ -11,6 +11,9 @@ source("functions.R")
 source("cleaning.R")
 source("estimation.R")
 ```
+```{r}
+warnings()
+```
 
 
 
@@ -19,15 +22,19 @@ keep track of league codes in codes.csv (libre office)
 
 ```{r}
 codes <- read_csv("codes.csv")
-codes %>% filter(is.na(skip)) %>% select(-skip) %>% sample_frac(1) -> codes
 codes
 ```
+
+
+
+
 
 idea: do a combined log-like for a collection of values of k (say seq(0, 100, 5)). That is, do it for each league and sum by value.
 
 ```{r}
-ks <- seq(0, 25, 5)
-codes %>% crossing(k=ks) -> d
+ks <- seq(5, 20, 5)
+codes %>% sample_frac(1) %>% 
+  crossing(k=ks) -> d
 pb <- progress_estimated(nrow(d))
 d %>% 
   mutate(ll=pmap_dbl(list(k, last, this), ~est_k(..1, ..2, ..3))) -> dd
@@ -42,6 +49,49 @@ dd %>%
 ```
 
 this suggests 10 points is better than 20 (that I have seen elsewhere). There is only one parameter k, so anything within 1.92 of the max likelihood is within a 95% CI, right?
+
+all right, this says k should be 10. Can I construct a df of teams and ratings?
+
+## Teams and ratings
+
+```{r}
+codes <- read_csv("codes.csv")
+codes %>% filter(is.na(skip)) %>% select(-skip) %>% sample_frac(1) -> codes
+codes
+```
+
+select a few
+
+```{r}
+codes %>% sample_n(3) -> c3
+c3
+```
+
+
+```{r}
+c3 %>% mutate(preseason=map2(last, this, ~preseason_ratings(.x, .y, games))) -> c3
+c3
+```
+
+this season
+
+```{r}
+c3 %>% mutate(post=map2(this, preseason, ~this_ratings(.x, .y, 10, games))) -> c3
+c3 %>% mutate(rat=map(post, "r")) %>% unnest(rat) %>% arrange(league, desc(rating)) %>% 
+  select(league, team, rating, h) %>% View()
+```
+
+```{r}
+c3 %>% mutate(the_games=map(post, "d")) %>% 
+  unnest(the_games) %>% 
+  arrange(desc(time_stamp)) %>% 
+  select(-last, -this, -preseason, -post) %>% View()
+```
+
+
+this is good. Get rating table sorted, and most recent games with deltas.
+
+
 
 ## jottings
 

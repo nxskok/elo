@@ -52,23 +52,15 @@ est_k <- function(k, comp1, comp2) {
   # current ratings for fixed k, estimating the initial ones
   # the_ratings really ought to do this
   games <- readRDS("~/teaching/scoresway/rds/games.rds")
-  d1 <- get_clean_games(comp1, games)
-  r1 <- estimate_initial(d1)
+  r1 <- preseason_ratings(comp1, comp2, games)
   d2 <- get_clean_games(comp2, games) 
-  with(d2, unique(c(t1, t2))) %>% enframe(name=NULL, value="team") -> teams_this
-  teams_this %>% anti_join(r1, by=c("team"="name")) %>% pull(team) -> up # came up
-  r1 %>% anti_join(teams_this, by=c("name"="team")) %>% pull(name) -> down # went down
-  tibble(up, down) -> changes
-  # try to automate changes. Might fail if league changes size. In fact, previous line will probably fail.
-  r1 %>% left_join(changes, by=c("name"="down")) %>% 
-    mutate(name=ifelse(!is.na(up), up, name)) %>% 
-    select(-up) -> r1
+  ans <- log_lik(k, d2, r1)
   pb$tick()$print()
-  log_lik(k, d2, r1)
+  ans
 }
 
 
-# then optimize for k
+# then optimize for k, whict I am not doing any more
 
 best_k <- function(d_initial, d_current) {
   # print("in best_k")
@@ -79,26 +71,40 @@ best_k <- function(d_initial, d_current) {
   ans$minimum
 }
 
-# try for a function to do the whole thing
+# set up initial ratings ready for new season
 
-the_ratings <- function(comp1, comp2) {
-  games <- readRDS("~/teaching/scoresway/rds/games.rds")
+preseason_ratings <- function(comp1, comp2, games) {
   d1 <- get_clean_games(comp1, games)
   r1 <- estimate_initial(d1)
   d2 <- get_clean_games(comp2, games) 
   with(d2, unique(c(t1, t2))) %>% enframe(name=NULL, value="team") -> teams_this
-  teams_this %>% anti_join(r1, by=c("team"="name")) %>% pull(team) -> up # came up
-  r1 %>% anti_join(teams_this, by=c("name"="team")) %>% pull(name) -> down # went down
-  # if number of rows different, select number of rows in up: needs thought
-  # n <- length(down)
-  tibble(up, down) -> changes
-  # try to automate changes. Might fail if league changes size. In fact, previous line will probably fail.
-  r1 %>% left_join(changes, by=c("name"="down")) %>% 
-    mutate(name=ifelse(!is.na(up), up, name)) %>% 
-    select(-up) -> r1
-  # r1 might now have repeats in it (if more teams went down than came up). Check to see what kind of thing this has.
-  # print("After league changes")
-  k <- best_k(r1, d2)
-  # print("after best k")
+  teams_this %>% left_join(r1, by=c("team"="name")) -> r2
+  r2 %>% summarize(minrat=min(rat, na.rm = T), hh=mean(h, na.rm = T)) -> rs
+  r2 %>% bind_cols(rs) %>% 
+    mutate(rat=ifelse(is.na(rat), minrat, rat)) %>% 
+    mutate(h=hh) %>% 
+    mutate(id=row_number()) %>% 
+    select(id, name=team, rat, h) -> r2
+  r2 %>% summarize(mn=mean(rat)) -> mean_rat
+  r2 %>% bind_cols(mean_rat) %>% 
+    mutate(rat=rat-mn+1500) %>% 
+    select(-mn) -> r2
+  r2
+}
+
+# just do this season
+
+this_ratings <- function(comp, pre, k=15, games) {
+  d2 <- get_clean_games(comp, games) 
+  new_ratings(k, d2, pre)
+}
+
+
+# try for a function to do the whole thing
+
+the_ratings <- function(comp1, comp2, k=15) {
+  games <- readRDS("~/teaching/scoresway/rds/games.rds")
+  r1 <- preseason_ratings(comp1, comp2, games)
+  d2 <- get_clean_games(comp2, games) 
   new_ratings(k, d2, r1)
 }
