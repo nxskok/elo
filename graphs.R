@@ -16,7 +16,7 @@ display <- function(d, g, want) {
 
 # make time graph of ratings
 
-time_graph <- function(lg, df, extra_days=40) {
+time_graph <- function(lg, df, extra_days=50) {
   # input: data frame like with_post containing updated ratings, league name wanted, extra days on right for team names
   df %>% 
     filter(league==lg) %>% 

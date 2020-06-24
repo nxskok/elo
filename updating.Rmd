@@ -24,7 +24,7 @@ options(dplyr.summarise.inform = FALSE)
 ## load up latest games and "pre" ratings
 
 ```{r}
-games <- read_rds("~/teaching/scoresway/rds/games.rds")
+games <- read_rds("~/Documents/r-projects/scoresway/rds/games.rds")
 with_pre <- read_rds("wpre.rds")
 with_pre
 ```
