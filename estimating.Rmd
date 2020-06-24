@@ -6,16 +6,28 @@ output: html_notebook
 ## startup
 
 ```{r}
-library(tidyverse)
+library(tidyverse) # CRAN v1.3.0 
+library(progress) # CRAN v1.2.2 
+library(conflicted) # CRAN v1.0.4
+conflict_prefer("filter", "dplyr") 
 source("functions.R")
 source("cleaning.R")
 source("estimation.R")
+source("graphs.R")
 ```
 ```{r}
 warnings()
 ```
 
+```{r}
+games <- read_rds("~/teaching/scoresway/rds/games.rds")
+```
 
+
+
+
+
+next: how to add new leagues to these, or make update into function
 
 
 keep track of league codes in codes.csv (libre office)
@@ -25,32 +37,212 @@ codes <- read_csv("codes.csv")
 codes
 ```
 
+how to handle the up and down? I may have to plan that first.
 
+team_diff returns a df of the new teams.
+
+```{r}
+source("estimation.R")
+team_diff(48497, 54285, games)
+```
+
+```{r}
+codes %>% mutate(new=map2(last, this, ~team_diff(.x, .y, games))) %>% 
+  unnest(new) -> new_teams
+new_teams %>% mutate(start="l") %>% 
+  write_csv("new_teams.csv")
+```
+
+edit
+
+```{r}
+new_teams <- read_csv("new_teams.csv")
+new_teams %>% filter(start=="?")
+```
+
+these are the teams whose names changed a little. Start them as they finished.
+
+get initials again, but save originals this time.
+
+Practice:
+
+```{r}
+comp <- 51126
+d1 <- get_clean_games(comp, games)
+r1 <- estimate_initial(d1)
+r1
+```
+
+```{r}
+source("functions.R")
+initial_from_comp(comp, games)
+```
+
+
+ok:
+
+```{r}
+pb <- progress_bar$new(format = " progress [:bar] :percent eta: :eta", total = nrow(codes))
+codes %>% 
+  mutate(initial=map(last, ~initial_from_comp(., games))) -> with_initial
+with_initial
+```
+
+
+
+```{r}
+with_initial %>% mutate(gone=map2(last, this, ~team_gone(.x, .y, games))) %>% 
+  mutate(new=map2(last, this, ~team_diff(.x, .y, games))) -> with_initial
+
+```
+
+
+
+new_teams.csv edited with these ******************************
+
+
+```{r}
+write_rds(with_initial, "wi.rds")
+```
+
+
+```{r}
+with_initial <- read_rds("wi.rds")
+with_initial
+```
+
+next: make df with old teams removed, find max and min of remaining, make ratings of new, insert.
+
+
+```{r}
+source("functions.R")
+want <- "germany"
+initial_to_pre(with_initial, want)
+```
+
+
+```{r}
+with_initial
+pb <- progress_bar$new(format = " progress [:bar] :percent eta: :eta", total = nrow(with_initial))
+source("functions.R")
+new_teams <- read_csv("new_teams.csv")
+with_initial %>% mutate(pre=map(league, ~initial_to_pre(with_initial, ., new_teams))) -> with_pre
+with_pre
+```
+
+```{r}
+write_rds(with_pre, "wpre.rds")
+```
+
+
+do the initials first, then optimizing for k will be a lot faster
+
+```{r}
+source("estimation.R")
+want <- "austria"
+with_pre %>% filter(league==want) -> d
+d %>% pluck("pre", 1) -> pre
+d %>% pluck("this", 1) -> comp
+k <- 15
+pb <- progress_bar$new(format = " progress [:bar] :percent eta: :eta", total = nrow(with_pre))
+est_k(k, pre, comp, games)
+
+```
 
 
 
 idea: do a combined log-like for a collection of values of k (say seq(0, 100, 5)). That is, do it for each league and sum by value.
 
 ```{r}
-ks <- seq(5, 20, 5)
-codes %>% sample_frac(1) %>% 
+ks <- seq(6, 16, 1)
+with_pre %>% sample_frac(1) %>% 
   crossing(k=ks) -> d
-pb <- progress_estimated(nrow(d))
+pb <- progress_bar$new(format = " progress [:bar] :percent eta: :eta", total = nrow(d))
 d %>% 
-  mutate(ll=pmap_dbl(list(k, last, this), ~est_k(..1, ..2, ..3))) -> dd
-dd
+  mutate(ll=pmap_dbl(list(k, pre, this), ~est_k(..1, ..2, ..3, games))) -> dd
 ```
 
 ```{r}
 dd %>% 
   mutate(k=sprintf("k%02d", k)) %>% 
   pivot_wider(names_from=k, values_from=ll) %>% 
-  summarize_at(vars(starts_with("k")), ~sum(.))
+  summarize_at(vars(starts_with("k")), ~sum(.)) %>% 
+  pivot_longer(everything(), names_to = "k", values_to = "loglik") %>% 
+  mutate(diff=loglik-min(loglik)) %>% 
+  arrange(loglik)
 ```
+
+looks like 8-14 is the interval. I'm using 15, because.
 
 this suggests 10 points is better than 20 (that I have seen elsewhere). There is only one parameter k, so anything within 1.92 of the max likelihood is within a 95% CI, right?
 
-all right, this says k should be 10. Can I construct a df of teams and ratings?
+review: with unknown ratings set to 1500, the best k is 5!
+
+
+all right, this says k should be 10. Can I construct a df of teams and ratings? start from with_pre
+
+## current ratings
+
+**********************
+
+new_ratings <- function(k, d, r) {
+  # k is the elo k
+  # d is a dataframe of the current season's games with teams as t1 and t2, results as r, on a 1-0.5-0 scale
+  # r is dataframe of initial teams, ratings and home adv
+  # returns updated ratings and home adv, and updated df with predicted probs and deltas
+  
+  # return(list(k, d, r))
+  
+  this_ratings <- function(comp, pre, k=15, games) {
+  d2 <- get_clean_games(comp, games) 
+  new_ratings(k, d2, pre)
+}
+
+
+
+
+for all (try 20 to allow for bigger changes)
+
+```{r}
+with_pre %>% 
+  mutate(rat=map2(this, pre, ~this_ratings(.x, .y, 20, games))) %>% 
+  mutate(post=map(rat, "r")) %>% 
+  mutate(updates=map(rat, "d")) -> with_post
+with_post
+```
+
+save
+
+```{r}
+write_rds(with_post, "wpost.rds")
+```
+
+
+see post values sorted in tabs
+
+```{r}
+source("graphs.R")
+with_post %>% slice(3) %>% 
+  arrange(desc(league)) %>% 
+  select(post, updates, league) %>% 
+  pwalk(~display(..1, ..2, ..3)) # first input to pwalk can be a df
+```
+
+next: plot of rating for each team against time
+
+make this a function
+
+```{r, fig.width=10, fig.height=15}
+
+time_graph("scotland", with_post)
+```
+
+
+
+
+
+
+## jottings
 
 ## Teams and ratings
 
@@ -62,16 +254,54 @@ codes
 
 select a few
 
+get previous (if exist)
+
 ```{r}
-codes %>% sample_n(3) -> c3
-c3
+pregot <- read_rds("pregot.rds")
+pregot
 ```
 
 
 ```{r}
-c3 %>% mutate(preseason=map2(last, this, ~preseason_ratings(.x, .y, games))) -> c3
+codes %>% sample_frac(1) -> c3
 c3
 ```
+
+```{r}
+pregot %>% full_join(c3) -> c3
+c3
+```
+
+how many null preseasons?
+
+```{r}
+c3 %>% select(league, preseason) %>% 
+  mutate(z=map_lgl(preseason, ~is.null(.))) %>% 
+  filter(z) %>% 
+  summarize(nr=n()) %>%  pull(nr) -> nr
+nr
+```
+
+
+```{r}
+pb <- progress_bar$new(format = " progress [:bar] :percent eta: :eta", total = nr)
+c3 %>% mutate(preseason=
+                pmap(list(last, this, preseason), 
+                     ~preseason_if(..1, ..2, games, ..3))) -> c3
+c3
+```
+
+```{r}
+c3 %>% unnest(preseason) %>% View("pre")
+```
+
+
+save this, then add to
+
+```{r}
+write_rds(c3, "pregot.rds")
+```
+
 
 this season
 
@@ -89,7 +319,7 @@ c3 %>% mutate(the_games=map(post, "d")) %>%
 ```
 
 
-this is good. Get rating table sorted, and most recent games with deltas.
+this is good. Get rating table sorted, and most recent = with deltas.
 
 
 
@@ -209,4 +439,5 @@ ans
 ```
 
 now, how about a function that starts from two comp numbers, optimizes for k, and then estimates new ratings?
+
 

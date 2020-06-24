@@ -1,0 +1,79 @@
+
+make a new season's ratings by continuing from last season
+
+## packages
+
+```{r}
+library(tidyverse)
+library(conflicted)
+source("cleaning.R")
+```
+
+## begin
+
+get latest ratings
+
+```{r}
+with_post <- read_rds("wpost.rds")
+with_post
+```
+
+
+
+grab ukraine
+
+```{r}
+all_ratings %>% filter(league=="ukraine") %>% 
+  unnest(ratings) -> d
+d
+```
+
+championship round is 54066, relegation round is 54068
+
+
+these are final ratings for 54067, so use as initial ratings for 54066-54068.
+
+idea: if current "last" exists as this, get ratings from there, else do old initialization
+
+or: make two rows of data file and combine into list-column
+
+```{r}
+d <- tribble(
+  ~a, ~b,
+  47821, 54067,
+  54067, 54066,
+  54067, 54068
+)
+d
+```
+
+```{r}
+d %>% nest(bb=b) %>% 
+  pull(bb)
+```
+
+so clean!
+
+```{r}
+games %>% filter(comp==54066) %>% 
+  clean_names() -> dd
+dd
+```
+
+```{r}
+dd %>% left_join(d, by=c("name"="team"))
+```
+
+get new teams (if any) and do like initializing.Rmd
+
+leagues to check
+
+ukraine
+austria
+armenia
+chinese taipei
+tajikistan
+croatia **
+greece
+
+in codes.csv, repeat regular season with each playoff section, then nest this season col when reading in. Deal with consequences, eg first element of list, %in% vs ==, etc.

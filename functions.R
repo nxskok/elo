@@ -49,3 +49,33 @@ estimate_initial <- function(games) {
   team_lookup %>% mutate(rat=rat0, h=h)
 }
 
+initial_from_comp <- function(comp, games) {
+  d1 <- get_clean_games(comp, games)
+  r1 <- estimate_initial(d1)
+  pb$tick()
+  r1
+}
+
+initial_to_pre <- function(with_initial, want, new_teams) {
+  with_initial %>% filter(league==want) -> d
+  d %>% pluck("initial", 1) -> initial
+  d %>% pluck("gone", 1) -> gone
+  d %>% pluck("new", 1) -> new
+  initial %>% anti_join(gone, by=c("name"="team")) -> dd
+  dd %>% summarise(min_rat=min(rat), max_rat=max(rat)) -> extremes
+  new %>% left_join(new_teams) %>% 
+    filter(league==want) %>% # just to be safe
+    mutate(rat=case_when(
+      start=="l"              ~ extremes$min_rat,
+      start=="h"              ~ extremes$max_rat,
+      as.numeric(start) > 0   ~ as.numeric(start),
+      TRUE                    ~ 1500
+    )) %>% 
+    select(name=team, rat) %>% 
+    bind_rows(dd) %>% 
+    arrange(desc(h)) %>% 
+    mutate(id=row_number()) %>% 
+    fill(h) -> ddd
+  pb$tick()
+  ddd
+}

@@ -1,48 +1,70 @@
-league,last,this,skip
-australia,47386,53497,1
-austria,48232,54164,
-belarus,51126,56666,
-belgium,48492,53516,
-bulgaria,48506,54087,
-croatia,48337,53842,
-cyprus,47751,53274,
-czech republic,48236,54509,
-denmark,48497,54285,
-england,48730,53145,
-england 2,48274,53782,
-england 3,48115,53677,1
-england 4,48450,53874,
-france,48044,53638,
-germany,47657,53499,
-Germany 2,47658,53500,
-greece,47479,52837,1
-hungary,48855,53519,
-iceland,44141,50336,
-ireland,45768,50855,
-italy,48235,54890,
-Italy 2,49002,54637,1
-netherlands,47971,54058,
-norway,45310,50939,
-poland,48402,53505,
-portugal,47741,53517,
-romania,48876,54245,
-russia,47835,53628,
-scotland,47730,53513,
-scotland 2,47206,52784,
-serbia,48023,53321,
-slovakia,48246,53771,
-slovenia,48127,53678,
-spain,47983,53502,
-sweden,44851,50679,
-switzerland,48769,54327,
-turkey,48404,53866,
-ukraine,47821,54067,
-wales,48196,53473,
-Scotland 3,47207,53987,
-Scotland 4,47325,54796,
-luxembourg,48021,53290,
-moldova,45337,50991,
-north macedonia,48390,53864,
-montenegro,48414,53867,
-France 2,48047,54072,
-albania,48259,54441,
+league,last,this
+albania,48259,54441
+andorra,47723,53266
+armenia,48391,54074
+australia,47386,53497
+austria,48232,54164
+belarus,51126,56666
+Belarus 2,50804,56539
+belgium,48492,53516
+bulgaria,48506,54087
+chinese taipei,50302,56721
+costa rica,54274,54278
+croatia,48337,53842
+cyprus,47751,53274
+czech republic,48236,54509
+czech republic 2,48249,53773
+denmark,48497,54285
+denmark 2,48258,53778
+england,48730,53145
+england 2,48274,53782
+england 3,48115,53677
+england 4,48450,53874
+estonia,50619,56494
+faroe islands,50678,56186
+france,48044,53638
+France 2,48047,54072
+germany,47657,53499
+Germany 2,47658,53500
+Germany 3,47659,53501
+greece,47479,52837
+hungary,48855,53519
+iceland,50336,55986
+ireland,45768,50855
+israel,53556,53555
+italy,48235,54890
+Italy 2,49002,54637
+korea 1,51005,56632
+kosovo,48248,53364
+lithuania,50746,56650
+luxembourg,48021,53290
+malta,47326,52902
+moldova,45337,50991
+montenegro,48414,53867
+netherlands,47971,54058
+nicaragua,54338,54342
+north macedonia,48390,53864
+northern ireland,47720,53081
+norway,45310,50939
+poland,48402,53505
+portugal,47741,53517
+romania,48876,54245
+russia,47835,53628
+san marino,49261,54124
+scotland,47730,53513
+scotland 2,47206,52784
+Scotland 3,47207,53987
+Scotland 4,47325,54796
+serbia,48023,53321
+slovakia,48246,53771
+slovenia,48127,53678
+spain,47983,53502
+Spain 2,49197,54950
+sweden,50679,56336
+sweden 2,50770,56337
+switzerland,48769,54327
+tajikistan,50624,56308
+turkey,48404,53866
+turkmenistan,50897,56937
+ukraine,47821,54067
+wales,48196,53473

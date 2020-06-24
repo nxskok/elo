@@ -1,0 +1,134 @@
+---
+title: "initializing"
+output: html_notebook
+---
+
+# check that all leagues are initialized
+
+next: initialize leagues that already have a complete season
+
+## packages etc
+
+```{r}
+library(tidyverse) # CRAN v1.3.0 
+library(progress) # CRAN v1.2.2 
+library(conflicted) # CRAN v1.0.4
+conflict_prefer("filter", "dplyr") 
+source("functions.R")
+source("cleaning.R")
+source("estimation.R")
+source("graphs.R")
+```
+
+read games, leagues, already initialized ones
+
+```{r}
+games <- read_rds("~/teaching/scoresway/rds/games.rds")
+codes <- read_csv("codes.csv")
+read_rds("wpre.rds") %>% arrange(league) -> with_pre
+with_pre
+```
+
+## check if anything needs initializing
+
+temporary removal here
+
+```{r}
+# with_pre %>% filter(!(last %in% c(48337))) -> with_pre # removal line
+write_rds(with_pre, "wpre.rds")
+```
+
+
+
+```{r}
+codes %>% 
+  anti_join(with_pre, by=c("league", "last", "this")) -> d
+d
+```
+
+
+
+
+needs initial, gone and new
+
+```{r}
+pb <- progress_bar$new(format = " progress [:bar] :percent eta: :eta", total = nrow(d))
+d %>% 
+  mutate(initial=map(last, ~initial_from_comp(., games))) -> dd
+dd
+```
+
+```{r}
+dd %>% unnest(initial)
+```
+
+
+
+gone and new
+
+```{r}
+dd %>% mutate(gone=map2(last, this, ~team_gone(.x, .y, games))) %>% 
+  mutate(new=map2(last, this, ~team_diff(.x, .y, games))) -> ddd
+ddd
+```
+
+```{r}
+ddd %>% unnest(gone)
+```
+
+```{r}
+ddd %>% unnest(new)
+```
+
+
+make ss of these
+
+
+```{r}
+ddd %>% mutate(new=map2(last, this, ~team_diff(.x, .y, games))) %>% 
+  unnest(new) -> new_teams
+new_teams %>% mutate(start="l") %>% 
+  select(-initial, -gone) %>% 
+  write_csv("new_teams.csv")
+```
+
+edit
+
+```{r}
+new_teams <- read_csv("new_teams.csv")
+new_teams %>% filter(start=="?")
+```
+
+
+
+fill in final here to new_teams
+
+then make pre
+
+```{r}
+new_teams
+```
+
+
+
+```{r}
+ddd
+pb <- progress_bar$new(format = " progress [:bar] :percent eta: :eta", total = nrow(ddd))
+source("functions.R")
+new_teams <- read_csv("new_teams.csv")
+ddd %>% mutate(pre=map(league, ~initial_to_pre(ddd, ., new_teams))) -> dddd
+dddd
+```
+
+combine and save
+
+```{r}
+with_pre <- read_rds("wpre.rds")
+bind_rows(dddd, with_pre) %>% 
+  write_rds("wpre.rds")
+```
+
+
+
+
+

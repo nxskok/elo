@@ -1,0 +1,105 @@
+---
+title: "updating"
+output: html_notebook
+---
+
+# updating the ratings
+
+## packages
+
+```{r}
+library(tidyverse) # CRAN v1.3.0 
+library(progress) # CRAN v1.2.2 
+library(ggrepel)
+library(lubridate)
+library(conflicted) # CRAN v1.0.4
+conflict_prefer("filter", "dplyr") 
+source("functions.R")
+source("cleaning.R")
+source("estimation.R")
+source("graphs.R")
+options(dplyr.summarise.inform = FALSE)
+```
+
+## load up latest games and "pre" ratings
+
+```{r}
+games <- read_rds("~/teaching/scoresway/rds/games.rds")
+with_pre <- read_rds("wpre.rds")
+with_pre
+```
+
+
+
+## updated ratings
+
+```{r}
+k <- 20
+options(dplyr.summarise.inform = FALSE)
+pb <- progress_bar$new(format = " progress [:bar] :percent eta: :eta", total = nrow(with_pre), width = 40)
+with_pre %>% 
+  mutate(rat=map2(this, pre, ~this_ratings(.x, .y, k, games))) %>% 
+  mutate(post=map(rat, "r")) %>% 
+  mutate(updates=map(rat, "d")) -> with_post
+with_post
+```
+
+
+
+
+save
+
+```{r}
+write_rds(with_post, "wpost.rds")
+```
+
+read
+
+```{r}
+with_post <- read_rds("wpost.rds")
+```
+
+look at one
+
+```{r}
+with_post %>% filter(league=="italy") %>% 
+  unnest(post) %>% 
+  select(team, rating, h) %>% arrange(team)
+```
+
+
+## look at
+
+see post values sorted in tabs
+
+```{r}
+since_hrs <- 24
+with_post %>% 
+  mutate(latest=map_dbl(updates, ~max(.$time_stamp))) %>% 
+  mutate(since=(now()-as_datetime(latest))/dhours(1)) %>% 
+  filter(since<=since_hrs) -> wp2
+wp2
+```
+
+
+see post values sorted in tabs
+
+```{r}
+# read_csv("wanted.txt") %>% pull(want) -> wants
+# wants
+# with_post <- read_rds("wpost.rds")
+# with_post %>% filter(league %in% wants) %>%  # edit/remove slice
+wp2 %>% 
+  arrange(desc(league)) %>% 
+  select(post, updates, league) %>% 
+  pwalk(~display(..1, ..2, ..3)) # first input to pwalk can be a df
+```
+
+
+## plot
+
+```{r, fig.width=10, fig.height=9}
+# time_graph("england 2", with_post)
+map(wp2$league, ~time_graph(., with_post))
+```
+
