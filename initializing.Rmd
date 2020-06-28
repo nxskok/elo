@@ -23,7 +23,7 @@ source("graphs.R")
 read games, leagues, already initialized ones
 
 ```{r}
-games <- read_rds("~/teaching/scoresway/rds/games.rds")
+games <- read_rds("~/Documents/r-projects/scoresway/rds/games.rds")
 codes <- read_csv("codes.csv")
 read_rds("wpre.rds") %>% arrange(league) -> with_pre
 with_pre

@@ -62,13 +62,13 @@ with_post <- read_rds("wpost.rds")
 look at one
 
 ```{r}
-with_post %>% filter(league=="italy") %>% 
+with_post %>% filter(league=="japan") %>% 
   unnest(post) %>% 
-  select(team, rating, h) %>% arrange(team)
+  select(team, rating, h) %>% arrange(desc(rating))
 ```
 
 
-## look at
+## look at all
 
 see post values sorted in tabs
 
