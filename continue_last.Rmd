@@ -6,6 +6,7 @@ make a new season's ratings by continuing from last season
 ```{r}
 library(tidyverse)
 library(conflicted)
+library(iso.week.half)
 conflict_prefer("filter", "dplyr")
 source("cleaning.R")
 ```
