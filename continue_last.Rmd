@@ -6,30 +6,63 @@ make a new season's ratings by continuing from last season
 ```{r}
 library(tidyverse)
 library(conflicted)
+conflict_prefer("filter", "dplyr")
 source("cleaning.R")
 ```
 
-## begin
-
-get latest ratings
+function to get latest ratings
 
 ```{r}
-with_post <- read_rds("wpost.rds")
-with_post
+get_post <- function() {
+  read_rds("wpost.rds")
+}
+
+latest_2 <- function(league_name, post_rat) {
+  post_rat %>% filter(league==league_name) %>% 
+    unnest(post) %>% 
+    select(team, rating, h)
+}
+
+latest_1 <- function(league_name) {
+  post <- get_post()
+  latest_2(league_name, post)
+}
+
+clean_new_names <- function(games, new_leagues) {
+  games %>% filter(comp %in% new_leagues) %>% 
+    clean_names()
+}
+
 ```
 
-
-
-grab ukraine
+test out
 
 ```{r}
-all_ratings %>% filter(league=="ukraine") %>% 
-  unnest(ratings) -> d
-d
+latest_1("ukraine")
 ```
 
-championship round is 54066, relegation round is 54068
+gimme a vector of new league ids and get the clean names
 
+```{r}
+new <- c(54066, 54068)
+clean_new_names(games, new)
+```
+
+```{r}
+name <- "ukraine"
+new <- c(54066, 54068)
+old_ratings <- latest_1(name)
+new_names <- clean_new_names(games, new)
+old_ratings %>% left_join(new_names, by=c("team"="name"))
+```
+
+use this as the basis for new ratings
+
+do I need to do it the other way around (in case of new teams or to keep old ones)?
+
+
+
+## jottings
 
 these are final ratings for 54067, so use as initial ratings for 54066-54068.
 
@@ -55,7 +88,7 @@ d %>% nest(bb=b) %>%
 so clean!
 
 ```{r}
-games %>% filter(comp==54066) %>% 
+games %>% filter(comp %in% c(54066, 54068)) %>% 
   clean_names() -> dd
 dd
 ```
@@ -71,9 +104,10 @@ leagues to check
 ukraine
 austria
 armenia
-chinese taipei
-tajikistan
-croatia **
+croatia
 greece
+denmark
+poland?
+slovakia 
 
 in codes.csv, repeat regular season with each playoff section, then nest this season col when reading in. Deal with consequences, eg first element of list, %in% vs ==, etc.
