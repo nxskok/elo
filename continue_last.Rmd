@@ -46,13 +46,19 @@ gimme a vector of new league ids and get the clean names
 
 
 ```{r}
-name <- "czech republic"
-new <- c(54505, 54510)
+name <- "uzbekistan"
+new <- c(56629)
 old_ratings <- latest_1(name)
 new_names <- clean_new_names(games, new)
-old_ratings %>% anti_join(new_names, by=c("team"="name")) # teams not in new_names
-new_names %>% anti_join(old_ratings, by=c("name"="team")) # teams in new_names without rating
-
+old_ratings %>% left_join(new_names, by=c("team"="name")) %>% drop_na(id) -> a # teams in new_names
+a
+a %>% summarise(min_rat=min(rating), h=mean(h)) -> stats
+stats
+new_names %>% anti_join(old_ratings, by=c("name"="team")) %>% # teams in new_names without rating
+  rename(team=name) %>%
+  mutate(rating=stats$min_rat, h=stats$h) %>% 
+  bind_rows(a) -> updated_ratings
+updated_ratings
 ```
 
 want the teams in new_names that are *not* in old_ratings
