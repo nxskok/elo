@@ -1,0 +1,4 @@
+Type: Compendium
+Package: elo
+Version: 0.1.0
+Depends: tidyverse, progress, ggrepel, lubridate, conflicted

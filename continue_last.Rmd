@@ -56,14 +56,38 @@ a %>% summarise(min_rat=min(rating), h=mean(h)) -> stats
 stats
 new_names %>% anti_join(old_ratings, by=c("name"="team")) %>% # teams in new_names without rating
   rename(team=name) %>%
-  mutate(rating=stats$min_rat, h=stats$h) %>% 
-  bind_rows(a) -> updated_ratings
+  mutate(rating=stats$min_rat, h=stats$h) %>% # or cleverer
+  bind_rows(a) %>% ungroup() -> updated_ratings
 updated_ratings
 ```
 
-want the teams in new_names that are *not* in old_ratings
+add this to what we already have
+
+which is?
+
+```{r}
+get_post() %>% filter(league==name) -> x
+x
+
+x %>% mutate(
+  last=this,
+  this=new,
+  initial=list(updated_ratings),
+  pre=list(updated_ratings)  
+)
 
 
+x %>% unnest(this, names_repair="minimal") 
+```
+
+create one row with all of this (or a lot of it)
+
+```{r}
+tibble(
+  league=name,
+  
+)
+```
 
 
 ## jottings
