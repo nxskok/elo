@@ -39,17 +39,24 @@ clean_new_names <- function(games, new_leagues) {
 test out
 
 ```{r}
-latest_1("ukraine")
+latest_1("israel") %>% arrange(team)
 ```
+
+```{r}
+get_post() %>% filter(league=="israel")
+```
+
+want only the last one of these
 
 gimme a vector of new league ids and get the clean names
 
 
 ```{r}
-name <- "uzbekistan"
-new <- c(56629)
+name <- "israel"
+new_league <- c(53555, 53557)
 old_ratings <- latest_1(name)
-new_names <- clean_new_names(games, new)
+old_ratings
+new_names <- clean_new_names(games, new_league)
 old_ratings %>% left_join(new_names, by=c("team"="name")) %>% drop_na(id) -> a # teams in new_names
 a
 a %>% summarise(min_rat=min(rating), h=mean(h)) -> stats
@@ -58,7 +65,7 @@ new_names %>% anti_join(old_ratings, by=c("name"="team")) %>% # teams in new_nam
   rename(team=name) %>%
   mutate(rating=stats$min_rat, h=stats$h) %>% # or cleverer
   bind_rows(a) %>% ungroup() -> updated_ratings
-updated_ratings
+updated_ratings %>% arrange(id) # duplicates
 ```
 
 add this to what we already have
@@ -66,28 +73,30 @@ add this to what we already have
 which is?
 
 ```{r}
+new
 get_post() %>% filter(league==name) -> x
 x
 
 x %>% mutate(
   last=this,
-  this=new,
+  this=new_league,
   initial=list(updated_ratings),
   pre=list(updated_ratings)  
-)
+) -> to_add
+to_add
+to_add %>% unnest(this)
 
-
-x %>% unnest(this, names_repair="minimal") 
+# x %>% unnest(this, names_repair="minimal") 
 ```
-
-create one row with all of this (or a lot of it)
+glue onto other
 
 ```{r}
-tibble(
-  league=name,
-  
-)
+post <- get_post()
+post %>% 
+  anti_join(to_add, by="league") %>% bind_rows(to_add) %>% unnest(this)
 ```
+
+
 
 
 ## jottings
