@@ -18,6 +18,7 @@ source("functions.R")
 source("cleaning.R")
 source("estimation.R")
 source("graphs.R")
+source("display.R")
 options(dplyr.summarise.inform = FALSE)
 ```
 
@@ -59,13 +60,7 @@ read
 with_post <- read_rds("wpost.rds")
 ```
 
-look at one
 
-```{r}
-with_post %>% filter(league=="japan") %>% 
-  unnest(post) %>% 
-  select(team, rating, h) %>% arrange(desc(rating))
-```
 
 
 ## look at all
@@ -79,6 +74,18 @@ with_post %>%
   mutate(since=(now()-as_datetime(latest))/dhours(1)) %>% 
   filter(since<=since_hrs) -> wp2
 wp2
+```
+
+not quite right yet
+
+```{r}
+disp <- function(post, league_name) {
+  # print(league_name)
+  combined_table(post, league_name) %>%
+    View(league_name)
+}
+disp(wp2, "iceland")
+walk(wp2$league, ~disp(wp2, .))
 ```
 
 

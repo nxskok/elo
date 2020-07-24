@@ -13,8 +13,8 @@ these_games <- function(post, league_name) {
     select(-the_week)
 }
 combined_table <- function(post, league_name) {
-  ratings <- these_ratings(with_post, the_league)
-  games <- these_games(with_post, the_league)
+  ratings <- these_ratings(with_post, league_name)
+  games <- these_games(with_post, league_name)
   ratings %>% left_join(games, by=c("team"="t1")) %>% 
     left_join(games, by=c("team"="t2")) %>% 
     mutate(opponent = coalesce(t1, t2)) %>% 
