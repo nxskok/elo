@@ -1,0 +1,67 @@
+packages
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(iso.week.half)
+```
+
+functions
+
+```{r}
+these_ratings <- function(post, league_name) {
+  # post is contents of wpost.rds
+  post %>% filter(league==league_name) %>% 
+    unnest(post) %>% 
+    select(team, rating, h) %>% arrange(desc(rating))
+}
+these_games <- function(post, league_name) {
+  post %>% filter(league==league_name) %>% 
+  unnest(updates) %>% 
+  select(time_stamp:r2) %>% 
+  mutate(the_week=iso_week_half(time_stamp)) %>% 
+  filter(the_week==max(the_week)) %>% 
+  select(-the_week)
+}
+```
+
+
+read the posts in
+
+```{r}
+with_post <- read_rds("wpost.rds")
+```
+
+look at one
+
+```{r}
+the_league <- "italy"
+(ratings <- these_ratings(with_post, the_league))
+(games <- these_games(with_post, the_league))
+```
+
+match
+
+```{r}
+
+ratings %>% left_join(games, by=c("team"="t1")) 
+
+%>% 
+  left_join(games, by=c("team"="t2")) %>% 
+  mutate(opponent = coalesce(t1, t2)) %>% 
+  select(-t1, -t2) %>% 
+  mutate(venue = if_else(is.na(s1.x), "a", "h")) %>% 
+  mutate(time_stamp = coalesce(time_stamp.x, time_stamp.y)) %>% 
+  mutate(score = if_else(venue=="h", str_c(s1.x, "-", s2.x), ))
+
+  
+```
+
+
+
+games
+
+```{r}
+these_games(with_post, "italy")
+```
+
