@@ -20,8 +20,8 @@ lookup_cleaned_names <- function(games, names) {
     select(time_stamp, t1=name.x, t2=name.y, score) 
 }
 
-get_clean_games <- function(comp_id, games) {
-  games %>% filter(comp %in% comp_id) -> gg
+get_clean_games <- function(comp_ids, games) {
+  games %>% filter(comp %in% comp_ids) -> gg
   cleaned_names <- clean_names(gg)
   lookup_cleaned_names(gg, cleaned_names) %>% 
     filter(str_detect(score, " - ")) %>% 

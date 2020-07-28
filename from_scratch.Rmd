@@ -1,0 +1,39 @@
+
+## intro
+
+calculate elo ratings from scratch every time, starting from all ratings 1500
+
+have to sort out new teams?
+
+to start, set them to 1500 also
+
+## packages
+
+```{r}
+library(tidyverse)
+source("from_scratch.R")
+games <- read_rds("~/Documents/r-projects/scoresway/rds/games.rds")
+```
+
+## play
+
+```{r}
+league <- "scotland"
+ids <- c(58114, 53513, 47730, 47731)
+```
+
+
+```{r}
+cg <- get_clean_games(ids, games) 
+cg
+```
+
+I need the games without results for this, but this is later
+
+
+```{r}
+cg$d %>% pivot_longer(t1:t2, names_to="t_name", values_to="team") %>% 
+  group_by(team) %>% count(comp) %>% 
+  pivot_wider(names_from = comp, values_from = n)
+```
+
